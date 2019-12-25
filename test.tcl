@@ -133,4 +133,5 @@ source $scriptname
 pub !rekisteri bey-830
 pub !rekisteri ilj-335
 pub !rekisteri txg-260
+pub !rekisteri kya-679
 pub !rekisteri iy-14

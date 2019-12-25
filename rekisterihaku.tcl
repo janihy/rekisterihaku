@@ -18,10 +18,8 @@
 
 namespace eval Rekisterihaku {
   # CONFIG
-  variable ignore "bdkqr|dkqr" ;# User flags script will ignore input from
-  variable length 7            ;# minimum url length to trigger channel eggdrop use
-  variable timeout 5000        ;# geturl timeout (1/1000ths of a second)
-  variable fetchLimit 5        ;# How many times to process redirects before erroring
+  variable ignore "bdkqr|dkqr" ;# user flags script will ignore input from
+  variable minlength 7         ;# minimum license plate length to query
 
   # BINDS
   bind pub - !rekisteri Rekisterihaku::handler
@@ -30,24 +28,34 @@ namespace eval Rekisterihaku {
   variable scriptVersion 0.01
 
   # PACKAGES
-  package require http         ;# You need the http package..
+  package require http
   package require tls
-  package require json         ;# from package tcllib in debian
+  package require json         ;# can be found in package tcllib in debian
 
   proc handler {nick host user chan text} {
     variable ignore
-    variable length
+    variable minlength
     http::register https 443 ::tls::socket
 
     if {(![matchattr $user $ignore])} {
-      if {[string trim $text] ne "" && [string length $text] >= $length} {
-        variable endpointurl "https://reko.biltema.com/v1/Reko/carinfo/$text/3/fi"
-        set response [::http::data [::http::geturl $endpointurl -binary true]]
-        set parsed [::json::json2dict $response]
+      if {[string trim $text] ne "" && [string length $text] >= $minlength} {
+        set licenseplate [string trim $text]
+        variable endpointurl "https://reko.biltema.com/v1/Reko/carinfo/$licenseplate/3/fi"
 
-        set suomiauto [expr {[string equal [dict get $parsed imported] true] ? "" : ", suomiauto"}]
-        set firstreg [string trimleft [string range [dict get $parsed registrationDate] 6 7] 0].[string trimleft [string range [dict get $parsed registrationDate] 4 5] 0].[string range [dict get $parsed registrationDate] 0 3]
-        puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed engineCode] - [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]]. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
+        set response [::http::geturl $endpointurl -binary true]
+
+        if {[::http::ncode $response] eq 200} {
+          set parsed [::json::json2dict [::http::data $response]]
+          if {[dict size $parsed] < 26} {
+            putlog "$licenseplate: $parsed"
+            puthelp "PRIVMSG $chan :Cannot parse the API response."
+          }
+
+          set suomiauto [expr {[string equal [dict get $parsed imported] true] ? "" : ", suomiauto"}]
+          set firstreg [string trimleft [string range [dict get $parsed registrationDate] 6 7] 0].[string trimleft [string range [dict get $parsed registrationDate] 4 5] 0].[string range [dict get $parsed registrationDate] 0 3]
+          set massat [dict get $parsed weightKg]/[dict get $parsed maxWeightKg]
+          puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
+        }
       }
     }
 
