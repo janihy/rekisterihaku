@@ -40,23 +40,27 @@ namespace eval Rekisterihaku {
     if {(![matchattr $user $ignore])} {
       if {[string trim $text] ne "" && [string length $text] >= $minlength} {
         set licenseplate [string trim $text]
-        variable endpointurl "https://reko.biltema.com/v1/Reko/carinfo/$licenseplate/3/fi"
+        variable biltema_endpointurl "https://reko.biltema.com/v1/Reko/carinfo/$licenseplate/3/fi"
+        variable trafi_endpointurl "https://autovertaamo.traficom.fi/etusivu/haeomanautonpaastotiedot"
+        set trafi_response [::http::geturl $trafi_endpointurl -type {application/json} -binary true -query "{\"rekisterinumero\": \"$licenseplate\"}"]
 
-        set response [::http::geturl $endpointurl -binary true]
+        set biltema_response [::http::geturl $biltema_endpointurl -binary true]
 
-        if {[::http::ncode $response] eq 200} {
-          set parsed [::json::json2dict [::http::data $response]]
+        if {[::http::ncode $biltema_response] eq 200 && [::http::ncode $trafi_response] eq 200} {
+          set parsed [::json::json2dict [::http::data $biltema_response]]
+          set parsed_trafiresponse [::json::json2dict [::http::data $trafi_response]]
           if {[dict size $parsed] < 26} {
             putlog "$licenseplate: $parsed"
-            puthelp "PRIVMSG $chan :Cannot parse the API response."
+            puthelp "PRIVMSG $chan :Cannot parse the API biltema_response."
           }
 
           set suomiauto [expr {[string equal [dict get $parsed imported] true] ? "" : ", suomiauto"}]
           set firstreg [string trimleft [string range [dict get $parsed registrationDate] 6 7] 0].[string trimleft [string range [dict get $parsed registrationDate] 4 5] 0].[string range [dict get $parsed registrationDate] 0 3]
           set massat [dict get $parsed weightKg]/[dict get $parsed maxWeightKg]
-          puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
+          puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). CO² [dict get $parsed_trafiresponse Co2Paastot] g/km, [dict get $parsed_trafiresponse Keskikulutus] l/100 km. Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
         }
-        ::http::cleanup $response
+        ::http::cleanup $biltema_response
+        ::http::cleanup $trafi_response
       }
     }
 
