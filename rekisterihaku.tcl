@@ -31,6 +31,7 @@ namespace eval Rekisterihaku {
   package require http
   package require tls
   package require json         ;# can be found in package tcllib in debian
+  package require tdom
 
   proc handler {nick host user chan text} {
     variable ignore
@@ -41,8 +42,17 @@ namespace eval Rekisterihaku {
       if {[string trim $text] ne "" && [string length $text] >= $minlength} {
         set licenseplate [string trim $text]
         variable biltema_endpointurl "https://reko.biltema.com/v1/Reko/carinfo/$licenseplate/3/fi"
-        variable trafi_endpointurl "https://autovertaamo.traficom.fi/etusivu/haeomanautonpaastotiedot"
-        set trafi_response [::http::geturl $trafi_endpointurl -type {application/json} -binary true -query "{\"rekisterinumero\": \"$licenseplate\"}"]
+        variable trafi_endpointurl "https://autovertaamo.traficom.fi/trafienergiamerkki/$licenseplate"
+
+        set trafi_response [::http::geturl $trafi_endpointurl -binary true -headers {Referer https://autovertaamo.traficom.fi/etusivu/index}]
+        set trafiroot [dom parse -html [::http::data $trafi_response] documentElement]
+
+        set taxTotal [string trim [[$trafiroot selectNodes "(//div\[@class='col-md-4'\]/div\[@class='tieto-osio'\]/h2)\[position()=2\]"] text]]
+        set co2 [string trim [[$trafiroot selectNodes "(//div\[@class='paastorajakuvaajan-selite clearfix'\]/strong)\[position()=1\]"] text]]
+        set fuelConsumptionCombined [string trim [[$trafiroot selectNodes "(//div\[@class='col-md-4'\]/div\[@class='tieto-osio'\]/div/span)\[position()=3\]"] text]]
+        set fuelConsumptionExtraUrban [string trim [[$trafiroot selectNodes "(//div\[@class='col-md-4'\]/div\[@class='tieto-osio'\]/div/span)\[position()=4\]"] text]]
+        set fuelConsumptionUrban [string trim [[$trafiroot selectNodes "(//div\[@class='col-md-4'\]/div\[@class='tieto-osio'\]/div/span)\[position()=5\]"] text]]
+
 
         set biltema_response [::http::geturl $biltema_endpointurl -binary true]
 
@@ -57,7 +67,7 @@ namespace eval Rekisterihaku {
           set suomiauto [expr {[string equal [dict get $parsed imported] true] ? "" : ", suomiauto"}]
           set firstreg [string trimleft [string range [dict get $parsed registrationDate] 6 7] 0].[string trimleft [string range [dict get $parsed registrationDate] 4 5] 0].[string range [dict get $parsed registrationDate] 0 3]
           set massat [dict get $parsed weightKg]/[dict get $parsed maxWeightKg]
-          puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). CO² [dict get $parsed_trafiresponse Co2Paastot] g/km, [dict get $parsed_trafiresponse Keskikulutus] l/100 km. Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
+          puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). Ajoneuvovero $taxTotal, CO² $co2, kulutus $fuelConsumptionCombined/$fuelConsumptionExtraUrban/$fuelConsumptionUrban l/100 km. Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
         }
         ::http::cleanup $biltema_response
         ::http::cleanup $trafi_response
