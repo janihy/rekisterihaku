@@ -3,9 +3,10 @@
 #
 # https://github.com/janihy/rekisterihaku
 #
-# Script grabbing technical details by the license plate from biltema API
+# Script grabbing technical details by the license plate from biltema API and by scraping Trafi Autovertaamo.
 #
 # Change log:
+# 0.02     Add
 # 0.01     Initial version
 #
 ################################################################################################################
@@ -25,7 +26,7 @@ namespace eval Rekisterihaku {
   bind pub - !rekisteri Rekisterihaku::handler
 
   # INTERNAL
-  variable scriptVersion 0.01
+  variable scriptVersion 0.02
 
   # PACKAGES
   package require http
