@@ -19,7 +19,7 @@
 namespace eval Rekisterihaku {
   # CONFIG
   variable ignore "bdkqr|dkqr" ;# user flags script will ignore input from
-  variable minlength 7         ;# minimum license plate length to query
+  variable minlength 3         ;# minimum license plate length to query
 
   # BINDS
   bind pub - !rekisteri Rekisterihaku::handler
