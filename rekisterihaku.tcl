@@ -83,7 +83,7 @@ namespace eval Rekisterihaku {
               set nox [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=1]/@data-arvo)}]]
               set hc [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=2]/@data-arvo)}]]
               set co [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=3]/@data-arvo)}]]
-              puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass bensiini - NOx $nox g/km, HC $hc g/km, CO $co g/km"
+              puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass bensiini - CO² $co2, NOx $nox g/km, HC $hc g/km, CO $co g/km"
             }
           }
         } else {
