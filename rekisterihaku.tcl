@@ -62,7 +62,7 @@ namespace eval Rekisterihaku {
             return 0
           }
 
-          switch $fueltype {
+          switch -glob $fueltype {
             "Dieselöljy" {
               set nox [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=1]/@data-arvo)}]]
               set hcnox [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=2]/@data-arvo)}]]
@@ -72,18 +72,18 @@ namespace eval Rekisterihaku {
 
               switch -regexp -- $emissionsclass {
                 EURO\ [4-6] {
-                  puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass diesel - CO² $co2, NOx $nox g/km, HC+NOx $hcnox g/km, CO $co g/km, PM $pm g/km, DPF: [string tolower $dpf]"
+                  puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass [string tolower $fueltype] - CO² $co2, NOx $nox g/km, HC+NOx $hcnox g/km, CO $co g/km, PM $pm g/km, DPF: [string tolower $dpf]"
                 }
                 default {
-                  puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass diesel - CO² $co2"
+                  puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass [string tolower $fueltype] - CO² $co2"
                 }
               }
             }
-            "Bensiini" {
+            "Bensiini*" {
               set nox [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=1]/@data-arvo)}]]
               set hc [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=2]/@data-arvo)}]]
               set co [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=3]/@data-arvo)}]]
-              puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass bensiini - CO² $co2, NOx $nox g/km, HC $hc g/km, CO $co g/km"
+              puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass [string tolower $fueltype] - CO² $co2, NOx $nox g/km, HC $hc g/km, CO $co g/km"
             }
           }
         } else {
