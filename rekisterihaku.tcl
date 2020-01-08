@@ -64,10 +64,10 @@ namespace eval Rekisterihaku {
 
           switch $fueltype {
             "Dieselöljy" {
-              set nox [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=1]/@data-arvo)}]]
-              set hcnox [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=2]/@data-arvo)}]]
-              set co [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=3]/@data-arvo)}]]
-              set pm [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=4]/@data-arvo)}]]
+              set nox [string trim [$trafiroot selectNodes "string(//tr\[@class='kuvaaja'\]\[position()=1\]/@data-arvo)"]]
+              set hcnox [string trim [$trafiroot selectNodes "string(//tr\[@class='kuvaaja'\]\[position()=2\]/@data-arvo)"]]
+              set co [string trim [$trafiroot selectNodes "string(//tr\[@class='kuvaaja'\]\[position()=3\]/@data-arvo)"]]
+              set pm [string trim [$trafiroot selectNodes "string(//tr\[@class='kuvaaja'\]\[position()=4\]/@data-arvo)"]]
               set dpf [string trim [[$trafiroot selectNodes "(//div\[@class='hiukkassuodatin-kylla' or @class='hiukkassuodatin-ei'\])"] text]]
 
               switch -regexp -- $emissionsclass {
@@ -80,12 +80,14 @@ namespace eval Rekisterihaku {
               }
             }
             "Bensiini" {
-              set nox [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=1]/@data-arvo)}]]
-              set hc [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=2]/@data-arvo)}]]
-              set co [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=3]/@data-arvo)}]]
-              puthelp "PRIVMSG $chan [string toupper $licenseplate]: $emissionsclass bensiini - NOx $nox, HC $hc, CO $co"
+              set nox [string trim [$trafiroot selectNodes "string(//tr\[@class='kuvaaja'\]\[position()=1\]/@data-arvo)"]]
+              set hc [string trim [$trafiroot selectNodes "string(//tr\[@class='kuvaaja'\]\[position()=2\]/@data-arvo)"]]
+              set co [string trim [$trafiroot selectNodes "string(//tr\[@class='kuvaaja'\]\[position()=3\]/@data-arvo)"]]
+              puthelp "PRIVMSG $chan [string toupper $licenseplate]: $emissionsclass bensiini - NOx $nox g/km, HC $hc g/km, CO $co g/km"
             }
           }
+        } else {
+          puthelp "PRIVMSG $chan [string toupper $licenseplate]: Ei päästötietoja, varmaan joku vanha dino :/"
         }
       }
     }
