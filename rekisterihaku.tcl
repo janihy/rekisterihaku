@@ -44,6 +44,7 @@ namespace eval Rekisterihaku {
   }
 
   proc printEmissions {nick host user chan text} {
+    http::register https 443 ::tls::socket
     variable ignore
 
     if {(![matchattr $user $ignore]) && [string trim $text] ne ""} {
@@ -93,6 +94,7 @@ namespace eval Rekisterihaku {
     }
 
   proc printTechnical {nick host user chan text} {
+    http::register https 443 ::tls::socket
     variable ignore
     variable minlength
 
@@ -126,14 +128,14 @@ namespace eval Rekisterihaku {
 
             puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). Ajoneuvovero $taxTotal, CO² $co2, kulutus $fuelConsumptionCombined/$fuelConsumptionExtraUrban/$fuelConsumptionUrban l/100 km. Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
           } else {
-            puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). Ei päästö- tai verotietoja. Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
+          puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). Ei päästö- tai verotietoja. Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
           }
         }
-
-        ::http::cleanup $biltema_response
-        ::http::cleanup $trafi_response
-        }
       }
+    }
+
+    ::http::cleanup $biltema_response
+    ::http::cleanup $trafi_response
 
     # change to return 0 if you want the pubm trigger logged additionally..
     return 1
