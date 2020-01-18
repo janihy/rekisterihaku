@@ -134,8 +134,15 @@ namespace eval Rekisterihaku {
           set mopo_endpointurl "https://www.mc-lifestyle.com/varaosat/varaosahaku/?rn=$licenseplate"
           set mopo_response [::http::geturl $mopo_endpointurl]
           set moporoot [dom parse -html [::http::data $mopo_response] documentElement]
+          foreach node [$moporoot selectNodes "//main/div\[@class='span12'\]/div/h1//text()"] {
+            if {[[$node parentNode] nodeName] eq "sup" && [$node data] eq 3} {
+              append mopoinfo "³"
+            } else {
+              append mopoinfo [$node data]
+            }
+          }
 
-          catch {puthelp "PRIVMSG $chan :[string toupper $licenseplate]: [string trim [[$moporoot selectNodes "//main/div\[@class='span12'\]/div/h1"] text]]"}
+          catch {puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $mopoinfo"}
         }
       }
     }
