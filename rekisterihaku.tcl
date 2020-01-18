@@ -135,7 +135,7 @@ namespace eval Rekisterihaku {
           set mopo_response [::http::geturl $mopo_endpointurl]
           set moporoot [dom parse -html [::http::data $mopo_response] documentElement]
 
-          catch {puthelp "PRIVMSG $chan :[string trim [[$moporoot selectNodes "//main/div\[@class='span12'\]/div/h1"] text]]"}
+          catch {puthelp "PRIVMSG $chan :[string toupper $licenseplate]: [string trim [[$moporoot selectNodes "//main/div\[@class='span12'\]/div/h1"] text]]"}
         }
       }
     }
