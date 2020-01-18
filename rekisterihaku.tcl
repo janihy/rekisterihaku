@@ -130,6 +130,12 @@ namespace eval Rekisterihaku {
           } else {
           puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). Ei päästö- tai verotietoja. Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
           }
+        } elseif {[string length $licenseplate] < 7} {
+          set mopo_endpointurl "https://www.mc-lifestyle.com/varaosat/varaosahaku/?rn=$licenseplate"
+          set mopo_response [::http::geturl $mopo_endpointurl]
+          set moporoot [dom parse -html [::http::data $mopo_response] documentElement]
+
+          catch {puthelp "PRIVMSG $chan :[string trim [[$moporoot selectNodes "//main/div\[@class='span12'\]/div/h1"] text]]"}
         }
       }
     }
