@@ -25,6 +25,9 @@ namespace eval Rekisterihaku {
 
   # BINDS
   bind pub - !rekisteri Rekisterihaku::printTechnical
+  bind pub - !rekkari Rekisterihaku::printTechnical
+  bind pub - !auto Rekisterihaku::printTechnical
+  bind pub - !mopo Rekisterihaku::printTechnical
   bind pub - !päästöt Rekisterihaku::printEmissions
 
   # INTERNAL
@@ -55,12 +58,14 @@ namespace eval Rekisterihaku {
         set trafiroot [dom parse -html [::http::data $trafi_response] documentElement]
         set co2 [string trim [[$trafiroot selectNodes "(//div\[@class='paastorajakuvaajan-selite clearfix'\]/strong)\[position()=1\]"] text]]
         set fueltype [string trim [[$trafiroot selectNodes "(//div\[@class='col-md-4'\]/div\[@class='tieto-osio'\]\[position()=4\]/h2)"] text]]
+        putlog $fueltype
 
         if {[catch {
           set emissionsresult [regexp {EURO [0-9]} [string trim [[$trafiroot selectNodes "(//div\[@class='col-md-4'\]/div\[@class='tieto-osio'\]/p/strong)"] text]] emissionsclass]}]
           } {
-            puthelp "PRIVMSG $chan :[string toupper $licenseplate]: Ei päästötietoja, varmaan joku vanha dino :/"
-            return 0
+            #puthelp "PRIVMSG $chan :[string toupper $licenseplate]: Ei päästötietoja, varmaan joku vanha dino :/"
+            set emissionsclass "EURO 5 tai uudempi"
+            #return 0
           }
 
           switch -glob $fueltype {
@@ -131,18 +136,27 @@ namespace eval Rekisterihaku {
           puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). Ei päästö- tai verotietoja. Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
           }
         } elseif {[string length $licenseplate] < 7} {
-          set mopo_endpointurl "https://www.mc-lifestyle.com/varaosat/varaosahaku/?rn=$licenseplate"
-          set mopo_response [::http::geturl $mopo_endpointurl]
+          set mopo_endpointurl "https://www.allright.eu/vehicle"
+          set data [::http::formatQuery vehicle_type "mo" license $licenseplate]
+          set mopo_response [::http::geturl $mopo_endpointurl -query $data]
+          upvar \#0 $mopo_response state
+          set cookies [list]
+          foreach {name value} $state(meta) {
+             if { $name eq "Set-Cookie" } {
+                 lappend cookies [lindex [split $value {;}] 0]
+             }
+          }
+          set mopo_endpointurl "https://www.allright.eu/tuotteet/varaosat"
+          ::http::cleanup $mopo_response
+          set mopo_response [::http::geturl $mopo_endpointurl -headers [list Cookie [join $cookies {;}]]]
+          #putlog [::http::ncode $mopo_response]
           set moporoot [dom parse -html [::http::data $mopo_response] documentElement]
-          foreach node [$moporoot selectNodes "//main/div\[@class='span12'\]/div/h1//text()"] {
-            if {[[$node parentNode] nodeName] eq "sup" && [$node data] eq 3} {
-              append mopoinfo "³"
-            } else {
-              append mopoinfo [$node data]
-            }
+
+          if {[catch [set mopoinfo [[$moporoot selectNodes "//h4/text()"] data]]]} {
+            puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $mopoinfo"
           }
 
-          catch {puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $mopoinfo"}
+          # catch {puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $mopoinfo"}
         }
       }
     }
@@ -153,6 +167,10 @@ namespace eval Rekisterihaku {
     # change to return 0 if you want the pubm trigger logged additionally..
     return 1
   }
+
+    proc printMopo {nick host user chan text} {
+    }
+
 
   putlog "Initialized Rekisterihaku v$scriptVersion"
 }
