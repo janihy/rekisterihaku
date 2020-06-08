@@ -114,10 +114,10 @@ namespace eval Rekisterihaku {
         variable biltema_endpointurl "https://reko.biltema.com/v1/Reko/carinfo/$licenseplate/3/fi"
 
         set trafi_response [getEmissions $licenseplate]
-        set biltema_response [::http::geturl $biltema_endpointurl -binary true]
+        set biltema_response [::http::geturl $biltema_endpointurl]
 
         if {[::http::ncode $biltema_response] eq 200} {
-          set parsed [::json::json2dict [::http::data $biltema_response]]
+          set parsed [::json::json2dict [encoding convertfrom utf-8 [::http::data $biltema_response]]]
           if {[dict size $parsed] < 26} {
             putlog "$licenseplate: $parsed"
             puthelp "PRIVMSG $chan :Cannot parse the API biltema_response."
