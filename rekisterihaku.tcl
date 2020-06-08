@@ -6,6 +6,7 @@
 # Script grabbing technical details by the license plate from biltema API and by scraping Trafi Autovertaamo.
 #
 # Change log:
+# 0.04     Implement !mopo, !mp and !mönkijä
 # 0.03     Implement !päästöt
 # 0.02     Add emissions data
 # 0.01     Initial version
@@ -28,6 +29,8 @@ namespace eval Rekisterihaku {
   bind pub - !rekkari Rekisterihaku::printTechnical
   bind pub - !auto Rekisterihaku::printTechnical
   bind pub - !mopo Rekisterihaku::printTechnical
+  bind pub - !mp Rekisterihaku::printTechnical
+  bind pub - !mönkijä Rekisterihaku::printTechnical
   bind pub - !päästöt Rekisterihaku::printEmissions
 
   # INTERNAL
@@ -99,9 +102,11 @@ namespace eval Rekisterihaku {
     }
 
   proc printTechnical {nick host user chan text} {
+    global lastbind
     http::register https 443 ::tls::socket
     variable ignore
     variable minlength
+    global lastbind
 
     if {(![matchattr $user $ignore])} {
       if {[string trim $text] ne "" && [string length $text] >= $minlength} {
@@ -137,7 +142,17 @@ namespace eval Rekisterihaku {
           }
         } elseif {[string length $licenseplate] < 7} {
           set mopo_endpointurl "https://www.allright.eu/vehicle"
-          set data [::http::formatQuery vehicle_type "mo" license $licenseplate]
+          switch $lastbind {
+            "!mopo" {
+              set data [::http::formatQuery vehicle_type "mo" license $licenseplate]
+            }
+            "!mp" {
+              set data [::http::formatQuery vehicle_type "mp" license $licenseplate]
+            }
+            "!mönkijä" {
+              set data [::http::formatQuery vehicle_type "at" license $licenseplate]
+            }
+          }
           set mopo_response [::http::geturl $mopo_endpointurl -query $data]
           upvar \#0 $mopo_response state
           set cookies [list]
