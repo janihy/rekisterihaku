@@ -41,7 +41,7 @@ namespace eval Rekisterihaku {
   package require tls
   package require json         ;# can be found in package tcllib in debian
   package require tdom
-  http::register https 443 ::tls::socket
+  http::register https 443 [list ::tls::socket -autoservername true]
 
   proc getEmissions {licenseplate} {
     variable trafi_endpointurl "https://autovertaamo.traficom.fi/trafienergiamerkki/$licenseplate"
@@ -50,7 +50,7 @@ namespace eval Rekisterihaku {
   }
 
   proc printEmissions {nick host user chan text} {
-    http::register https 443 ::tls::socket
+    http::register https 443 [list ::tls::socket -autoservername true]
     variable ignore
 
     if {(![matchattr $user $ignore]) && [string trim $text] ne ""} {
@@ -112,9 +112,13 @@ namespace eval Rekisterihaku {
       if {[string trim $text] ne "" && [string length $text] >= $minlength} {
         set licenseplate [string trim $text]
         variable biltema_endpointurl "https://reko.biltema.com/v1/Reko/carinfo/$licenseplate/3/fi"
+        variable nettix_endpointurl "https://www.nettiauto.com/viewVehicle.php?reg_no=$licenseplate"
 
         set trafi_response [getEmissions $licenseplate]
         set biltema_response [::http::geturl $biltema_endpointurl]
+        putlog $nettix_endpointurl
+        set nettix_response [::http::geturl $nettix_endpointurl -headers {User-Agent moop} ]
+        putlog $nettix_response
 
         if {[::http::ncode $biltema_response] eq 200} {
           set parsed [::json::json2dict [encoding convertfrom utf-8 [::http::data $biltema_response]]]

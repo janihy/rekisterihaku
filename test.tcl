@@ -86,9 +86,11 @@ proc pub {cmd {value ""}} {
     global channel
     global uhost
     global handle
+    global lastbind
     set pub [dict get $binds "pub"]
     if {[dict exists $pub $cmd]} {
         set p [dict get $pub $cmd]
+        set lastbind $cmd
         $p $nickname $uhost $handle $channel $value
         return
     }
@@ -130,8 +132,5 @@ proc dcc {cmd {value ""}} {
 source $scriptname
 
 # # TESTS GO HERE
-pub !rekisteri bey-830
-pub !rekisteri ilj-335
-pub !rekisteri txg-260
-pub !rekisteri kya-679
-pub !rekisteri iy-14
+
+pub !rekkari ulf-515
