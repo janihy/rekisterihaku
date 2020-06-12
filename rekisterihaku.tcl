@@ -6,6 +6,7 @@
 # Script grabbing technical details by the license plate from biltema API and by scraping Trafi Autovertaamo.
 #
 # Change log:
+# 0.05     Search nettiauto for the car sales ad
 # 0.04     Implement !mopo, !mp and !mönkijä
 # 0.03     Implement !päästöt
 # 0.02     Add emissions data
@@ -38,7 +39,7 @@ namespace eval Rekisterihaku {
 
   # PACKAGES
   package require http
-  package require tls
+  package require tls 1.7
   package require json         ;# can be found in package tcllib in debian
   package require tdom
   http::register https 443 [list ::tls::socket -autoservername true]
@@ -103,7 +104,7 @@ namespace eval Rekisterihaku {
 
   proc printTechnical {nick host user chan text} {
     global lastbind
-    http::register https 443 ::tls::socket
+    http::register https 443 [list ::tls::socket -autoservername true]
     variable ignore
     variable minlength
     global lastbind
@@ -116,9 +117,10 @@ namespace eval Rekisterihaku {
 
         set trafi_response [getEmissions $licenseplate]
         set biltema_response [::http::geturl $biltema_endpointurl]
-        putlog $nettix_endpointurl
-        set nettix_response [::http::geturl $nettix_endpointurl -headers {User-Agent moop} ]
-        putlog $nettix_response
+        set nettix_response [::http::geturl $nettix_endpointurl -headers {User-Agent curl/7.58.0} ]
+        upvar #0 $nettix_response state
+        array set meta $state(meta)
+        set nettix_myyntiurl $meta(Location)
 
         if {[::http::ncode $biltema_response] eq 200} {
           set parsed [::json::json2dict [encoding convertfrom utf-8 [::http::data $biltema_response]]]
@@ -143,6 +145,9 @@ namespace eval Rekisterihaku {
             puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). Ajoneuvovero $taxTotal, CO² $co2, kulutus $fuelConsumptionCombined/$fuelConsumptionExtraUrban/$fuelConsumptionUrban l/100 km. Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
           } else {
           puthelp "PRIVMSG $chan :[dict get $parsed licensePlateNbr]: [dict get $parsed nameOfTheCar] [dict get $parsed modelYear]. [dict get $parsed powerKw] kW [dict get $parsed cylinderCapacityCcm] cm³ [dict get $parsed cylinder]-syl [string tolower [dict get $parsed fuelType]] [string tolower [dict get $parsed impulsionType]] ([dict get $parsed engineCode]). Ei päästö- tai verotietoja. Oma/kokonaismassa $massat kg. Ensirekisteröinti $firstreg, VIN [dict get $parsed chassieNumber]$suomiauto"
+          }
+          if {$nettix_myyntiurl ne "https://www.nettiauto.com"} {
+            puthelp "PRIVMSG $chan :On muuten myynnissä: $nettix_myyntiurl"
           }
         } elseif {[string length $licenseplate] < 7} {
           set mopo_endpointurl "https://www.allright.eu/vehicle"
