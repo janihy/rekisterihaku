@@ -62,14 +62,11 @@ namespace eval Rekisterihaku {
         set trafiroot [dom parse -html [::http::data $trafi_response] documentElement]
         set co2 [string trim [[$trafiroot selectNodes "(//div\[@class='paastorajakuvaajan-selite clearfix'\]/strong)\[position()=1\]"] text]]
         set fueltype [string trim [[$trafiroot selectNodes "(//div\[@class='col-md-4'\]/div\[@class='tieto-osio'\]\[position()=4\]/h2)"] text]]
-        putlog $fueltype
 
         if {[catch {
           set emissionsresult [regexp {EURO [0-9]} [string trim [[$trafiroot selectNodes "(//div\[@class='col-md-4'\]/div\[@class='tieto-osio'\]/p/strong)"] text]] emissionsclass]}]
           } {
-            #puthelp "PRIVMSG $chan :[string toupper $licenseplate]: Ei päästötietoja, varmaan joku vanha dino :/"
-            set emissionsclass "EURO 5 tai uudempi"
-            #return 0
+            set emissionsclass "Trafi ei muista luokitusta mutta"
           }
 
           switch -glob $fueltype {
@@ -85,7 +82,16 @@ namespace eval Rekisterihaku {
                   puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass [string tolower $fueltype] - CO² $co2, NOx $nox g/km, HC+NOx $hcnox g/km, CO $co g/km, PM $pm g/km, DPF: [string tolower $dpf]"
                 }
                 default {
-                  puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass [string tolower $fueltype] - CO² $co2"
+                  set dpf [string trim [[$trafiroot selectNodes "(//div\[@class='hiukkassuodatin-kylla' or @class='hiukkassuodatin-ei'\])"] text]]
+                  set noxit [string trim [[$trafiroot selectNodes {//div[@class='hiukkassuodatin-kylla' or @class='hiukkassuodatin-ei']/ancestor::div/p[position()=1]}] text]]
+                  regexp {([\d,]+)} $noxit -> nox
+                  set hcnoxit [string trim [[$trafiroot selectNodes {//div[@class='hiukkassuodatin-kylla' or @class='hiukkassuodatin-ei']/ancestor::div/p[position()=2]}] text]]
+                  regexp {([\d,]+)} $hcnoxit -> hcnox
+                  set cot [string trim [[$trafiroot selectNodes {//div[@class='hiukkassuodatin-kylla' or @class='hiukkassuodatin-ei']/ancestor::div/p[position()=3]}] text]]
+                  regexp {([\d,]+)} $cot -> co
+                  set pmt [string trim [[$trafiroot selectNodes {//div[@class='hiukkassuodatin-kylla' or @class='hiukkassuodatin-ei']/ancestor::div/p[position()=4]}] text]]
+                  regexp {([\d,]+)} $pmt -> pm
+                  puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass joku dieselpoltin - CO² $co2, NOx $nox g/km, HC+NOx $hcnox g/km, CO $co g/km, PM $pm g/km, DPF: [string tolower $dpf]"
                 }
               }
             }
@@ -93,7 +99,15 @@ namespace eval Rekisterihaku {
               set nox [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=1]/@data-arvo)}]]
               set hc [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=2]/@data-arvo)}]]
               set co [string trim [$trafiroot selectNodes {string(//tr[@class='kuvaaja'][position()=3]/@data-arvo)}]]
-              puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass [string tolower $fueltype] - CO² $co2, NOx $nox g/km, HC $hc g/km, CO $co g/km"
+
+              switch -regexp -- $emissionsclass {
+                EURO\ [4-6] {
+                  puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass [string tolower $fueltype]auto - CO² $co2, NOx $nox g/km, HC $hc g/km, CO $co g/km"
+                }
+                default {
+                  puthelp "PRIVMSG $chan :[string toupper $licenseplate]: $emissionsclass [string tolower $fueltype]auto - CO² $co2"
+                }
+              }
             }
           }
         } else {
@@ -191,10 +205,6 @@ namespace eval Rekisterihaku {
     # change to return 0 if you want the pubm trigger logged additionally..
     return 1
   }
-
-    proc printMopo {nick host user chan text} {
-    }
-
 
   putlog "Initialized Rekisterihaku v$scriptVersion"
 }
